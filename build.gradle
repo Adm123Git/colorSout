@@ -1,0 +1,14 @@
+plugins {
+    id 'java'
+    id "com.github.johnrengelman.shadow" version "${pluginVersionShadowJar}"
+}
+
+group 'ru.adm123'
+version '1.0.0'
+
+shadowJar {
+    archiveBaseName.set('colorSout')
+    archiveClassifier.set("")
+}
+
+tasks.build.dependsOn tasks.shadowJar
