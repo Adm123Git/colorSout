@@ -1,14 +1,91 @@
-plugins {
+ plugins {
     id 'java'
-    id "com.github.johnrengelman.shadow" version "${pluginVersionShadowJar}"
+    id 'maven-publish'
+    id 'signing'
+    id 'io.github.gradle-nexus.publish-plugin' version '1.1.0'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    withJavadocJar()
+    withSourcesJar()
 }
 
 group 'ru.adm123'
-version '1.0.0'
+version '0.0.1'
+archivesBaseName = 'color-sout'
 
-shadowJar {
-    archiveBaseName.set('colorSout')
-    archiveClassifier.set("")
+signing {
+    required {
+        !version.toString().endsWith('-SNAPSHOT') && tasks.withType(PublishToMavenRepository).find {
+            gradle.taskGraph.hasTask it
+        }
+    }
+    sign publishing.publications
 }
 
-tasks.build.dependsOn tasks.shadowJar
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            customizePom(pom)
+            groupId group
+            artifactId archivesBaseName
+            version version
+            from components.java
+        }
+    }
+}
+
+def customizePom(pom) {
+    pom.withXml {
+        def root = asNode()
+        root.dependencies.removeAll { dep ->
+            dep.scope == "test"
+        }fix
+        root.children().last() + {
+            resolveStrategy = Closure.DELEGATE_FIRST
+
+            description 'Colorized java System.out.print(ln)'
+            name 'color-sout'
+            url 'https://github.com/Adm123Git/colorSout'
+            organization {
+                name 'Adm123'
+                url 'https://github.com/Adm123Git'
+            }
+            issueManagement {
+                system 'GitHub'
+                url 'https://github.com/Adm123Git/colorSout/issues'
+            }
+            licenses {
+                license {
+                    name 'The Apache License, Version 2.0'
+                    url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                }
+            }
+            scm {
+                url 'https://github.com/Adm123Git/colorSout'
+                connection 'scm:https://github.com/Adm123Git/colorSout.git'
+                developerConnection 'scm:git://github.com/Adm123Git/colorSout.git'
+            }
+            developers {
+                developer {
+                    id 'dev'
+                    name 'Adm123'
+                    email 'adm123@mail.ru'
+                }
+            }
+        }
+    }
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+            username = "${sonatypeUser}"
+            password = "${sonatypePassword}"
+        }
+    }
+}
